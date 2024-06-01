@@ -42,8 +42,8 @@ class MarkdownTokenizer:
         while pos < length:
             bold_match = re.search(r'\*\*(.*?)\*\*', text[pos:])
             link_match = re.search(r'\[(.*?)\]\((.*?)\)', text[pos:])
-
-            if bold_match and (not link_match or bold_match.start() < link_match.start()):
+            print(bold_match)
+            if bold_match:
                 if bold_match.start() > 0:
                     self.tokens.append(TextToken(text[pos:pos + bold_match.start()]))
                 self.tokens.append(BoldToken(bold_match.group(1)))
@@ -60,7 +60,7 @@ class MarkdownTokenizer:
     def get_tokens(self):
         return self.tokens
 
-# Example
+# Example usage
 markdown_text = """
 # Header 1
 ## Header 2
