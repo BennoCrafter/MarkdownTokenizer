@@ -1,88 +1,80 @@
 import re
-from tokens import *
+from node import Node, TextNode
 
 class MarkdownTokenizer:
     def __init__(self, text):
         self.text = text
         self.tokens = []
-        self.tokenize()
+        self.ast = Node(node_type="root", childs=[])
+        self.tokenize(self.text, self.ast)
+        #self.prettify_ast(self.ast.get_childs())
+        # print("ds", self.ast.get_last_child().get_childs()[1].get_content())
+        # print(self.ast.get_childs())
+    
+    def tokenize(self, text, parent_node):
+        header_re = re.compile(r'^(#{1,6})\s+(.*)', re.MULTILINE)
+        list_re = re.compile(r'^(\*|\-|\+|\d+\.)\s+(.*)', re.MULTILINE)
+        block_quote_re = re.compile(r'^> ?(.*)', re.MULTILINE)
 
-    def tokenize(self):
-        lines = self.text.split('\n')
-        for line in lines:
-            self.tokenize_line(line)
-            self.tokens.append(NewLineToken())  # Add a NewLineToken for each new line
+        bold_re = re.compile(r'\*\*(.*?)\*\*', re.MULTILINE)
+        italic_re = re.compile(r'\*(.*?)\*', re.MULTILINE)
+        link_re = re.compile(r'\[(.*?)\]\((.*?)\)', re.MULTILINE)
+        patterns = [
+            list_re,
+            bold_re,
+            italic_re,
+            link_re,
+            block_quote_re,
+            header_re
 
-    def tokenize_line(self, line):
-        # Header
-        header_match = re.match(r'^(#{1,6})\s+(.*)', line)
-        if header_match:
-            level = len(header_match.group(1))
-            value = header_match.group(2)
-            self.tokens.append(HeaderToken(level, value))
-            return
-
-        # List Item (ordered or unordered)
-        list_match = re.match(r'^(\*|\-|\+|\d+\.)\s+(.*)', line)
-        if list_match:
-            ordered = bool(re.match(r'^\d+\.', list_match.group(1)))
-            value = list_match.group(2)
-            self.tokens.append(ListToken(value, ordered))
-            self.tokenize_inline(value)  # Tokenize inline elements within the list item
-            return
+        ]
         
-        block_quote_match = re.search(r'^> ?(.*)', line)
-        if block_quote_match:
-            value = block_quote_match.group(1)
-            self.tokens.append(BlockquoteToken(value))
-            self.tokenize_inline(value)
-            return
-
-
-        # Process other inline elements
-        self.tokenize_inline(line)
-
-    def tokenize_inline(self, text):
         pos = 0
-        length = len(text)
-        while pos < length:
-            bold_match = re.search(r'\*\*(.*?)\*\*', text[pos:])
-            italic_match = re.search(r'\*(.*?)\*', text[pos:])
-            link_match = re.search(r'\[(.*?)\]\((.*?)\)', text[pos:])
+        text_len = len(text)
+        prev_pos = 0
+        prev_span_end = 0
+        curr_line = 0
+        # at this point only god understands this code
+        while pos < text_len:
+            chunk = text[pos:]
+            found_match = False
+            if text[pos] == "\n":
+                curr_line += 1
+            for pattern in patterns:
+                match = pattern.match(string=chunk)
+                if match:
+                    found_match = True
+                    print("Found match!")
+                    # get prev text
+                    if (prev_pos + prev_span_end + 1 != pos):
+                        print("TEXT BEFORE MATCH:", text[prev_pos+prev_span_end:pos])
 
-            if bold_match:
-                # handle text if theres something before bold match **hing****new** ll **www** kgj
-                if bold_match.start() > 0:
-                    self.tokens.append(TextToken(text[pos:pos + bold_match.start()]))
-                self.tokens.append(BoldToken(bold_match.group(1)))
-                pos += bold_match.end()
-            elif link_match:
-                # handle text if theres something before link match
-                if link_match.start() > 0:
-                    self.tokens.append(TextToken(text[pos:pos + link_match.start()]))
-                self.tokens.append(LinkToken(link_match.group(1), link_match.group(2)))
-                pos += link_match.end()
+                    print("MATCH:", match)
+                    print("Current line:", curr_line)
+                    prev_pos = pos
+                    prev_span_end = match.end()
+                    pos += match.end()
+                    break
+            if not found_match:
+                pos += 1
+                
+            
+
+    def prettify_ast(self, childs, is_from=0):
+        for node in childs:
+            if isinstance(node, TextNode):
+                print("text node with content:", node.get_content(), is_from)
             else:
-                self.tokens.append(TextToken(text[pos:]))
-                break
-
-    def get_tokens(self):
-        return self.tokens
+                print(node.get_childs())
+                self.prettify_ast(node.get_childs(), is_from=is_from+1)
 
 # Example usage
-markdown_text = """
-# Header 1
-## Header 2
-Some **bold** text and a [link](http://example.com).
-
-Directly 2 tokens **like** [this](http://example.com)    
-- Unordered list item
-1. Ordered list item
-2. Ordered **with** bold text! How **cool**!
-> Thats **cool** shit!
+sec = """
+# Header first
+something else **other** wow
+## other header
+- nice **very** cool
+[this](http://example.com)
 """
 
-tokenizer = MarkdownTokenizer(markdown_text)
-tokens = tokenizer.get_tokens()
-for token in tokens:
-    print(token)
+MarkdownTokenizer(sec)
