@@ -7,9 +7,9 @@ class MarkdownTokenizer:
         self.tokens = []
         self.ast = Node(node_type="root", childs=[])
         self.tokenize(self.text, self.ast)
-        #self.prettify_ast(self.ast.get_childs())
+        self.prettify_ast(self.ast.get_childs())
         # print("ds", self.ast.get_last_child().get_childs()[1].get_content())
-        # print(self.ast.get_childs())
+        print(len(self.ast.get_childs()))
     
     def tokenize(self, markdown_text, parent_node):
         header_re = re.compile(r'^(#{1,6})\s+(.*)', re.MULTILINE)
@@ -19,51 +19,57 @@ class MarkdownTokenizer:
         bold_re = re.compile(r'\*\*(.*?)\*\*', re.MULTILINE)
         italic_re = re.compile(r'\*(.*?)\*', re.MULTILINE)
         link_re = re.compile(r'\[(.*?)\]\((.*?)\)', re.MULTILINE)
-        new_line_re = re.compile(r'\nl')
+        new_line_re = re.compile(r'\n')
         patterns = [
-            list_re,
-            bold_re,
-            italic_re,
-            link_re,
-            block_quote_re,
-            header_re,
-            new_line
+            (list_re, True),
+            (bold_re, False),
+            (italic_re, False),
+            (link_re, True),
+            (block_quote_re, True),
+            (header_re, True),
+            (new_line_re, False)
 
         ]
         
         pos = 0
         text_len = len(markdown_text)
-        found_text = None
+        found_text = ""
         # at this point only god understands this code
         while pos < text_len:
-            chunk = markdown_text[pos:]
             found_match = False
-            for pattern in patterns:
-                match = pattern.match(string=chunk)
+            for pattern, is_special in patterns:
+                match = pattern.match(string=markdown_text[pos:])
                 if match:
                     found_match = True
-                    print("Found match!")
                     # get prev text
-                    if found_text:
-                        print("TEXT before match:", found_text)
-                        found_text = None
-                    print("MATCH:", match)
-                    print("Current line:", curr_line)
-                    prev_pos = pos
-                    prev_span_end = match.end()
+                    if found_text != "":
+                        print("TEXT before match:", found_text.strip())
+                        parent_node.add_child(TextNode(found_text.strip()))
+                        found_text = ""
+                    # print("MATCH:", match)
+                    if match.group() == "\n":
+                        pos += 1
+                        break
+                    n = Node(node_type="node", childs=[])
+                    parent_node.add_child(n)
+
+                    if is_special:
+                        print(match.group(2))
+                        self.tokenize(match.group(2), n)                    
                     pos += match.end()
+
                     break
             if not found_match:
                 found_text += markdown_text[pos]
                 pos += 1
-            
+        
+        parent_node.add_child(TextNode(found_text))
 
     def prettify_ast(self, childs, is_from=0):
         for node in childs:
             if isinstance(node, TextNode):
                 print("text node with content:", node.get_content(), is_from)
             else:
-                print(node.get_childs())
                 self.prettify_ast(node.get_childs(), is_from=is_from+1)
 
 # Example usage
