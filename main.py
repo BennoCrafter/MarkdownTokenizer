@@ -19,13 +19,15 @@ class MarkdownTokenizer:
         bold_re = re.compile(r'\*\*(.*?)\*\*', re.MULTILINE)
         italic_re = re.compile(r'\*(.*?)\*', re.MULTILINE)
         link_re = re.compile(r'\[(.*?)\]\((.*?)\)', re.MULTILINE)
+        new_line_re = re.compile(r'\nl')
         patterns = [
             list_re,
             bold_re,
             italic_re,
             link_re,
             block_quote_re,
-            header_re
+            header_re,
+            new_line
 
         ]
         
@@ -36,17 +38,15 @@ class MarkdownTokenizer:
         while pos < text_len:
             chunk = markdown_text[pos:]
             found_match = False
-            if text[pos] == "\n":
-                curr_line += 1
             for pattern in patterns:
                 match = pattern.match(string=chunk)
                 if match:
                     found_match = True
                     print("Found match!")
                     # get prev text
-                    if (prev_pos + prev_span_end + 1 != pos):
-                        print("TEXT BEFORE MATCH:", markdown_text[prev_pos+prev_span_end:pos])
-
+                    if found_text:
+                        print("TEXT before match:", found_text)
+                        found_text = None
                     print("MATCH:", match)
                     print("Current line:", curr_line)
                     prev_pos = pos
