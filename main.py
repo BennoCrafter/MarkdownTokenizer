@@ -11,7 +11,7 @@ class MarkdownTokenizer:
         # print("ds", self.ast.get_last_child().get_childs()[1].get_content())
         # print(self.ast.get_childs())
     
-    def tokenize(self, text, parent_node):
+    def tokenize(self, markdown_text, parent_node):
         header_re = re.compile(r'^(#{1,6})\s+(.*)', re.MULTILINE)
         list_re = re.compile(r'^(\*|\-|\+|\d+\.)\s+(.*)', re.MULTILINE)
         block_quote_re = re.compile(r'^> ?(.*)', re.MULTILINE)
@@ -30,13 +30,11 @@ class MarkdownTokenizer:
         ]
         
         pos = 0
-        text_len = len(text)
-        prev_pos = 0
-        prev_span_end = 0
-        curr_line = 0
+        text_len = len(markdown_text)
+        found_text = None
         # at this point only god understands this code
         while pos < text_len:
-            chunk = text[pos:]
+            chunk = markdown_text[pos:]
             found_match = False
             if text[pos] == "\n":
                 curr_line += 1
@@ -47,7 +45,7 @@ class MarkdownTokenizer:
                     print("Found match!")
                     # get prev text
                     if (prev_pos + prev_span_end + 1 != pos):
-                        print("TEXT BEFORE MATCH:", text[prev_pos+prev_span_end:pos])
+                        print("TEXT BEFORE MATCH:", markdown_text[prev_pos+prev_span_end:pos])
 
                     print("MATCH:", match)
                     print("Current line:", curr_line)
@@ -56,8 +54,8 @@ class MarkdownTokenizer:
                     pos += match.end()
                     break
             if not found_match:
+                found_text += markdown_text[pos]
                 pos += 1
-                
             
 
     def prettify_ast(self, childs, is_from=0):
